@@ -16,7 +16,7 @@ for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER]:
         os.makedirs(folder)
 
 # Configuration
-IMAGE_FILENAME = "C:\\Users\\GARV\\Moon_Project\\newfinaldata\\newcombinedout\\combined_image_batch_1.jpg"
+IMAGE_FILENAME = "combined_image_batch_1.jpg"
 LABELS_FILENAME = 'path1.txt'
 ROVER_IMAGE_PATH = "isro_rover.png"
 
