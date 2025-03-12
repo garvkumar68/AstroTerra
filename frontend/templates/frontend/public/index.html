@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Point Selector with Result</title>
+    <style>
+        .container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            max-width: 100%;
+            flex-wrap: wrap;
+        }
+        
+        .image-row {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .image-container {
+            position: relative;
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .result-container {
+            flex: 1;
+            min-width: 300px;
+            display: none;
+        }
+        
+        #imageCanvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        
+        #resultImage {
+            width: 100%;
+            height: auto;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        button.clear {
+            background-color: #dc3545;
+        }
+        
+        .download-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: none;
+            margin-top: 10px;
+        }
+        
+        .download-btn:hover {
+            background-color: #218838;
+        }
+        
+        .points-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        
+        .error {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            color: #dc3545;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 200;
+        }
+        
+        .api-config {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="api-config">
+        <label for="apiUrl">API URL:</label>
+        <input type="text" id="apiUrl" value="https://garv68-moon.hf.space" style="width: 200px;">
+        <button onclick="saveApiUrl()">Save</button>
+    </div>
+    
+    <div class="container">
+        <div class="image-row">
+            <div class="image-container">
+                <canvas id="imageCanvas"></canvas>
+            </div>
+            <div class="result-container">
+                <img id="resultImage" alt="Result">
+                <a id="downloadVideo" class="download-btn" download>Download Animation</a>
+            </div>
+        </div>
+    </div>
+    <div class="controls">
+        <button onclick="sendPoints()" id="sendButton" disabled>Calculate Path</button>
+        <button onclick="clearPoints()" class="clear">Clear Points</button>
+    </div>
+    <div class="points-info" id="pointsInfo">
+        Selected points: 0/2
+    </div>
+    <div class="error" id="error"></div>
+    <div class="loading" id="loading">Calculating path...</div>
+
+    <script>
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const resultContainer = document.querySelector('.result-container');
+        const resultImage = document.getElementById('resultImage');
+        const downloadBtn = document.getElementById('downloadVideo');
+        const loading = document.getElementById('loading');
+        let selectedPoints = [];
+        let image = new Image();
+        
+        // Get API URL from localStorage or use default
+        let apiUrl = localStorage.getItem('apiUrl') || 'https://garv68-moon.hf.space';
+        document.getElementById('apiUrl').value = apiUrl;
+        
+        function saveApiUrl() {
+            apiUrl = document.getElementById('apiUrl').value.trim();
+            if (apiUrl) {
+                localStorage.setItem('apiUrl', apiUrl);
+                loadImage(); // Reload the image with the new API URL
+                showError('API URL saved successfully');
+            }
+        }
+        
+        // Load and draw the initial image
+        function loadImage() {
+            image = new Image();
+            image.crossOrigin = "Anonymous";  // Enable CORS for the image
+            image.onload = function() {
+                canvas.width = image.width;
+                canvas.height = image.height;
+                drawCanvas();
+            };
+            image.onerror = function() {
+                showError('Failed to load image from API');
+            };
+            image.src = `${apiUrl}/api/image`;
+        }
+        
+        // Initialize
+        loadImage();
+        
+        function drawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0);
+            
+            // Draw selected points
+            selectedPoints.forEach((point, index) => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.stroke();
+                
+                // Add point number
+                ctx.fillStyle = 'white';
+                ctx.font = '16px Arial';
+                ctx.fillText(index + 1, point.x + 10, point.y + 10);
+            });
+        }
+        
+        // Handle canvas click events
+        canvas.addEventListener('click', function(e) {
+            if (selectedPoints.length >= 2) {
+                showError('You can only select 2 points');
+                return;
+            }
+            
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            selectedPoints.push({ x, y });
+            updatePointsInfo();
+            drawCanvas();
+            
+            if (selectedPoints.length === 2) {
+                document.getElementById('sendButton').disabled = false;
+            }
+        });
+        
+        function updatePointsInfo() {
+            const info = document.getElementById('pointsInfo');
+            info.textContent = `Selected points: ${selectedPoints.length}/2`;
+            
+            selectedPoints.forEach((point, index) => {
+                info.textContent += `\nPoint ${index + 1}: (${Math.round(point.x)}, ${Math.round(point.y)})`;
+            });
+        }
+        
+        function clearPoints() {
+            selectedPoints = [];
+            document.getElementById('sendButton').disabled = true;
+            document.getElementById('error').textContent = '';
+            resultContainer.style.display = 'none';
+            downloadBtn.style.display = 'none';
+            downloadBtn.href = '';
+            updatePointsInfo();
+            drawCanvas();
+        }
+        
+        function showError(message) {
+            document.getElementById('error').textContent = message;
+        }
+        
+        async function sendPoints() {
+            if (selectedPoints.length !== 2) {
+                showError('Please select exactly 2 points');
+                return;
+            }
+            
+            loading.style.display = 'block';
+            downloadBtn.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${apiUrl}/api/calculate_path`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        points: selectedPoints.map(point => ({
+                            x: Math.round(point.x),
+                            y: Math.round(point.y)
+                        }))
+                    }),
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to calculate path');
+                }
+                
+                const result = await response.json();
+                
+                if (result.result_image_url) {
+                    resultImage.src = result.result_image_url;
+                    resultContainer.style.display = 'block';
+                    
+                    if (result.video_url) {
+                        downloadBtn.href = result.video_url;
+                        downloadBtn.style.display = 'block';
+                        downloadBtn.download = 'path_animation.mp4';
+                    }
+                    
+                    showError('Path calculated successfully!');
+                } else {
+                    showError('No result image URL received');
+                }
+                
+            } catch (err) {
+                showError('Error calculating path: ' + err.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify, send_file
 import os
-from pathfinder import find_path, save_result
 import time
-from rover import RobotPathAnimator
+import sys
 from flask_cors import CORS
+from pathfinder import find_path, save_result
+from rover import RobotPathAnimator
 
 app = Flask(__name__)
-CORS(app) 
+CORS(app)  # Enable CORS for all routes
 
 # Configure folders
 UPLOAD_FOLDER = 'uploads'
@@ -29,13 +30,9 @@ def get_labels_path():
     labels_path = os.path.join(UPLOAD_FOLDER, LABELS_FILENAME)
     if not os.path.exists(labels_path):
         raise FileNotFoundError(f"Labels file not found: {labels_path}")
-    return labels_path  
+    return labels_path
 
-@app.route('/')
-def index():
-    return send_file('index.html')
-
-@app.route('/get_image')
+@app.route('/api/image', methods=['GET'])
 def get_image():
     try:
         image_path = get_image_path()
@@ -43,14 +40,14 @@ def get_image():
     except FileNotFoundError as e:
         return jsonify({'error': str(e)}), 404
 
-@app.route('/get_output_image/<filename>')
+@app.route('/api/output_image/<filename>', methods=['GET'])
 def get_output_image(filename):
     output_path = os.path.join(OUTPUT_FOLDER, filename)
     if not os.path.exists(output_path):
         return jsonify({'error': 'Output image not found'}), 404
     return send_file(output_path, mimetype='image/jpeg')
 
-@app.route('/get_video/<filename>')
+@app.route('/api/video/<filename>', methods=['GET'])
 def get_video(filename):
     video_path = os.path.join(OUTPUT_FOLDER, filename)
     if not os.path.exists(video_path):
@@ -63,10 +60,9 @@ def get_video(filename):
         download_name='path_animation.mp4'
     )
 
-@app.route('/api/points', methods=['POST'])
-def handle_points():
+@app.route('/api/calculate_path', methods=['POST'])
+def calculate_path():
     try:
-        import sys
         print("Raw JSON Received:", request.json, file=sys.stderr)
 
         data = request.json
@@ -125,11 +121,12 @@ def handle_points():
 
         print("Path computation and animation creation successful", file=sys.stderr)
 
+        # Return URLs that the frontend can use
+        base_url = request.url_root.rstrip('/')
         return jsonify({
             'message': 'Path found successfully',
-            'result_image_url': f"/get_output_image/{os.path.basename(output_file)}",
-            'video_url': f"/get_video/animation_{timestamp}.mp4",
-            'path_file': path_txt_file
+            'result_image_url': f"{base_url}/api/output_image/{os.path.basename(output_file)}",
+            'video_url': f"{base_url}/api/video/animation_{timestamp}.mp4",
         })
 
     except FileNotFoundError as e:
@@ -139,4 +136,5 @@ def handle_points():
         return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)

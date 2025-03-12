@@ -161,7 +161,7 @@ const MoonScene = () => {
   return (
     <div
       onDoubleClick={() => {
-        window.location.href = "https://huggingface.co/spaces/garv68/moon";
+        window.location.href = "/index.html";
       }}
       ref={mountRef}
       className="hover:cursor-pointer w-full h-screen"
