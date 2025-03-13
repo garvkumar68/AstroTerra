@@ -20,7 +20,7 @@ The primary objective is to streamline moon crater detection and support rover n
 
 
 <br>
-## Key Features
+## Key Features<br>
 
 - **Automated Crater Detection**: Utilizing YOLOv8l deep learning model optimized on a self-labeled dataset<br>
 - **Efficient Processing**: Handles ultra-high-resolution OHRC images (12,000 × 90,148 pixels)<br>
@@ -73,4 +73,4 @@ The A* algorithm successfully finds the shortest path between two points while a
 
 
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+No permission is granted to copy, modify, distribute, or use this code in any form, private or public, without explicit written permission from the author.
