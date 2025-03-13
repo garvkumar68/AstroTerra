@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 
 const MoonScene = () => {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ const MoonScene = () => {
   const sceneRef = useRef<THREE.Scene>();
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const rendererRef = useRef<THREE.WebGLRenderer>();
+  const labelRendererRef = useRef<CSS2DRenderer>();
   const moonRef = useRef<THREE.Mesh>();
   const controlsRef = useRef<OrbitControls>();
   const textureURL =
@@ -17,6 +19,9 @@ const MoonScene = () => {
     "https://s3-us-west-2.amazonaws.com/s.cdpn.io/17271/ldem_3_8bit.jpg";
   const worldURL =
     "https://s3-us-west-2.amazonaws.com/s.cdpn.io/17271/hipp8_s.jpg";
+  
+  const [showTooltip, setShowTooltip] = useState(true);
+
   useEffect(() => {
     if (!mountRef.current) return;
 
@@ -46,6 +51,15 @@ const MoonScene = () => {
     renderer.toneMappingExposure = 1.2; // Increased exposure for brighter appearance
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+
+    // CSS2D Renderer for HTML tooltip
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0px';
+    labelRenderer.domElement.style.pointerEvents = 'none';
+    mountRef.current.appendChild(labelRenderer.domElement);
+    labelRendererRef.current = labelRenderer;
 
     // Improved controls setup
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -96,7 +110,33 @@ const MoonScene = () => {
     scene.add(moon);
     moonRef.current = moon;
 
-    // Enhanced stars setup
+    // Create futuristic tooltip box
+    const tooltipDiv = document.createElement('div');
+    tooltipDiv.className = 'tooltip';
+    tooltipDiv.innerHTML = 'Double Click on Moon';
+    tooltipDiv.style.backgroundColor = 'rgba(0, 50, 100, 0.8)';
+    tooltipDiv.style.color = 'rgb(120, 220, 255)';
+    tooltipDiv.style.padding = '10px 15px';
+    tooltipDiv.style.borderRadius = '10px';
+    tooltipDiv.style.fontFamily = 'Arial, sans-serif';
+    tooltipDiv.style.fontSize = '14px';
+    tooltipDiv.style.fontWeight = 'bold';
+    tooltipDiv.style.boxShadow = '0 0 15px rgba(0, 180, 255, 0.7)';
+    tooltipDiv.style.border = '1px solid rgba(100, 200, 255, 0.5)';
+    tooltipDiv.style.backdropFilter = 'blur(5px)';
+    tooltipDiv.style.textShadow = '0 0 5px rgba(0, 200, 255, 0.7)';
+    tooltipDiv.style.textAlign = 'center';
+    tooltipDiv.style.minWidth = '180px';
+    tooltipDiv.style.letterSpacing = '1px';
+    tooltipDiv.style.textTransform = 'uppercase';
+    tooltipDiv.style.transition = 'opacity 0.3s ease';
+
+    const tooltipObject = new CSS2DObject(tooltipDiv);
+    // Position tooltip above the moon
+    tooltipObject.position.set(0, 3, 0); // y = 3 positions it above the moon
+    moon.add(tooltipObject);
+
+    // FIXED: Properly distributed stars in all directions
     const starGeometry = new THREE.BufferGeometry();
     const starMaterial = new THREE.PointsMaterial({
       color: 0xffffff,
@@ -108,9 +148,15 @@ const MoonScene = () => {
 
     const starVertices = [];
     for (let i = 0; i < 15000; i++) {
-      const x = (Math.random() - 0.5) * 2000;
-      const y = (Math.random() - 0.5) * 2000;
-      const z = -Math.random() * 2000;
+      // Generate random points on a sphere to create stars all around
+      const radius = 100;
+      const theta = Math.random() * Math.PI * 2; // Random angle around the sphere
+      const phi = Math.acos(2 * Math.random() - 1); // Random angle from top to bottom
+      
+      const x = radius * Math.sin(phi) * Math.cos(theta);
+      const y = radius * Math.sin(phi) * Math.sin(theta);
+      const z = radius * Math.cos(phi);
+      
       starVertices.push(x, y, z);
     }
 
@@ -132,20 +178,30 @@ const MoonScene = () => {
 
       if (moonRef.current) {
         moonRef.current.rotation.y += 0.0005;
+        
+        // Make tooltip always face the camera
+        tooltipObject.quaternion.copy(camera.quaternion);
       }
 
+      // Render both the 3D scene and the CSS2D labels
       renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
     };
 
     animate();
 
     // Handle resize
     const handleResize = () => {
-      if (!cameraRef.current || !rendererRef.current) return;
+      if (!cameraRef.current || !rendererRef.current || !labelRendererRef.current) return;
 
-      cameraRef.current.aspect = window.innerWidth / window.innerHeight;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      cameraRef.current.aspect = width / height;
       cameraRef.current.updateProjectionMatrix();
-      rendererRef.current.setSize(window.innerWidth, window.innerHeight);
+      
+      rendererRef.current.setSize(width, height);
+      labelRendererRef.current.setSize(width, height);
     };
 
     window.addEventListener("resize", handleResize);
@@ -153,7 +209,10 @@ const MoonScene = () => {
     // Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
-      mountRef.current?.removeChild(renderer.domElement);
+      if (mountRef.current) {
+        mountRef.current.removeChild(renderer.domElement);
+        mountRef.current.removeChild(labelRenderer.domElement);
+      }
       scene.clear();
     };
   }, []);
@@ -161,7 +220,7 @@ const MoonScene = () => {
   return (
     <div
       onDoubleClick={() => {
-        window.location.href = "/index.html";
+        navigate("/next");
       }}
       ref={mountRef}
       className="hover:cursor-pointer w-full h-screen"
