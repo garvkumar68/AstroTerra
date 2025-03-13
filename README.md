@@ -53,7 +53,7 @@ AstroTerra demonstrates strong performance in crater detection, box merging, and
 
 The A* algorithm successfully finds the shortest path between two points while avoiding crater obstacles, ensuring safe navigation for lunar rovers.
 
-![Shortest Path](https://i.imgur.com/mNo5678.png)
+![Shortest Path](https://github.com/garvkumar68/AstroTerra/blob/main/frontend/img/shortest%20path%20cropped.png)
 
 ![Shortest Path GIF](https://github.com/garvkumar68/AstroTerra/blob/main/frontend/img/rover_path.gif)
 
