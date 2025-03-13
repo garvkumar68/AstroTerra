@@ -2,7 +2,7 @@
 
 ## A Deep Learning Framework for Automated Lunar Crater Detection with Efficient Rover Navigation
 
-<img src="https://github.com/garvkumar68/AstroTerra/blob/main/img/logo.jpg" alt="AstroTerra Banner" width="400"/>
+![AstroTerra Banner](https://github.com/garvkumar68/AstroTerra/blob/main/img/logo.jpg)
 
 ## Overview
 
@@ -39,7 +39,7 @@ The primary objective is to streamline moon crater detection and support rover n
 9. **Path Finding**: Implement A* algorithm to determine optimal routes between points
 10. **Efficient coordinates mapping**: Uses Hash-maps to map coordinates optimized the efficiency from o(n^2) to o(1)
 
-<img src="https://github.com/garvkumar68/AstroTerra/blob/main/img/flowchart.png" alt="Pipeline Architecture" width="400"/>
+![Pipeline Architecture](https://github.com/garvkumar68/AstroTerra/blob/main/img/flowchart.png)
 
 ## Results
 
@@ -51,7 +51,7 @@ The A* algorithm successfully finds the shortest path between two points while a
 
 <img src="https://github.com/garvkumar68/AstroTerra/blob/main/img/shortest%20path%20cropped.png" alt="Shortest Path" width="400"/>
 
-<img src="https://github.com/garvkumar68/AstroTerra/blob/main/img/rover_path.gif" alt="Shortest Path GIF" width="400"/>
+![Shortest Path GIF](https://github.com/garvkumar68/AstroTerra/blob/main/img/rover_path.gif)
 
 ## Applications
 
